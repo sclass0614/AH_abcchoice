@@ -1,0 +1,593 @@
+<div class="member-select-page">
+  <h1>우리집 회원 선택</h1>
+
+  <div class="p1-search-container">
+    <input
+      type="text"
+      id="p1-search-input"
+      class="p1-search-box"
+      placeholder="회원 검색..."
+    />
+    <input type="date" id="p1-date-input" class="p1-date-input" />
+  </div>
+
+  <div class="p1-members-container" id="p1-members-container">
+    <!-- 회원 카드는 스크립트에서 동적으로 생성됩니다 -->
+  </div>
+
+  <!-- 로딩 표시 -->
+  <div id="p1-loading" class="p1-loading-overlay">
+    <div class="p1-loading-spinner"></div>
+    <p>데이터 로딩 중...</p>
+  </div>
+</div>
+
+<script>
+  // 초기화 함수
+  function initializePage() {
+    console.log("member-select 페이지 초기화");
+
+    // 날짜 입력 필드 초기화
+    initDateInput();
+
+    // 검색 필드 이벤트 리스너 설정
+    const searchInput = document.getElementById("p1-search-input");
+    if (searchInput) {
+      searchInput.addEventListener("input", filterMembers);
+    }
+
+    // 날짜 형식 가져오기
+    const dateInput = document.getElementById("p1-date-input");
+    let formattedDate = "";
+
+    if (dateInput && dateInput.value) {
+      formattedDate = formatDate(dateInput.value);
+      console.log("선택된 날짜:", formattedDate);
+    } else {
+      formattedDate = formatDate(new Date());
+      console.log("오늘 날짜 사용:", formattedDate);
+    }
+
+    // 항상 loadAllData를 실행하여 최신 데이터를 가져오도록 수정
+    if (typeof loadAllData === "function") {
+      console.log("전체 데이터 로드 시작");
+      showLoading(true);
+
+      loadAllData(formattedDate)
+        .then(() => {
+          console.log("전체 데이터 로드 완료");
+          // 데이터 로드 후 회원 목록 표시
+          if (window.totalData && window.totalData.memberData) {
+            const memberData = processMemberData(window.totalData.memberData);
+            displayMembers(memberData);
+          }
+          showLoading(false);
+        })
+        .catch((error) => {
+          console.error("데이터 로드 중 오류 발생:", error);
+          showLoading(false);
+          // 오류 시 멤버 데이터만 로드
+          loadMemberData();
+        });
+    } else {
+      // loadAllData 함수가 없는 경우 기존 로직 실행
+      if (
+        window.totalData &&
+        window.totalData.memberData &&
+        window.totalData.memberData.length > 0
+      ) {
+        console.log(
+          "이미 로드된 memberData 사용:",
+          window.totalData.memberData.length + "개 항목"
+        );
+        const memberData = processMemberData(window.totalData.memberData);
+        displayMembers(memberData);
+      } else {
+        loadMemberData();
+      }
+    }
+  }
+
+  // 전역에서 접근할 수 있는 페이지 초기화 함수 설정
+  window.initializeMemberSelect = function () {
+    console.log("전역에서 member-select 페이지 초기화 함수 호출");
+    initializePage();
+  };
+
+  // 회원 데이터 로드
+  async function loadMemberData() {
+    console.log("loadMemberData 함수 호출됨");
+
+    // 로딩 표시
+    showLoading(true);
+
+    try {
+      // 날짜 입력 필드에서 선택된 날짜 가져오기
+      const dateInput = document.getElementById("p1-date-input");
+      let formattedDate = "";
+
+      if (dateInput && dateInput.value) {
+        formattedDate = formatDate(dateInput.value);
+        console.log("선택된 날짜로 데이터 로드:", formattedDate);
+      } else {
+        formattedDate = formatDate(new Date());
+        console.log("오늘 날짜로 데이터 로드:", formattedDate);
+      }
+
+      // Supabase에서 데이터 로드
+      try {
+        const result = await getselectedMemberData(formattedDate);
+        console.log("데이터 로드 성공");
+
+        // 결과 처리
+        const memberData = processMemberData(result);
+
+        // 데이터 표시
+        displayMembers(memberData);
+
+        // 로딩 숨김
+        showLoading(false);
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+        alert("회원 데이터를 불러올 수 없습니다.");
+
+        // 로딩 숨김
+        showLoading(false);
+
+        // 에러 메시지 표시
+        const container = document.getElementById("p1-members-container");
+        if (container) {
+          container.innerHTML =
+            '<p class="p1-no-results">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+        }
+      }
+    } catch (error) {
+      console.error("loadMemberData 오류:", error);
+      showLoading(false);
+
+      // 에러 메시지 표시
+      const container = document.getElementById("p1-members-container");
+      if (container) {
+        container.innerHTML =
+          '<p class="p1-no-results">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+      }
+    }
+  }
+
+  // 회원 데이터 처리
+  function processMemberData(data) {
+    console.log("processMemberData 함수 호출됨", data);
+
+    if (!data || !Array.isArray(data)) {
+      console.warn("유효한 회원 데이터가 아님:", data);
+      return [];
+    }
+
+    try {
+      // 데이터 형식 확인 및 변환
+      return data
+        .map((row) => {
+          // Supabase에서 넘어오는 데이터 순서
+          // [0]: 회원번호, [1]: 회원명, [2]: 생년월일
+          const memberNumber = row[0] || ""; // 회원번호
+          const memberName = row[1] || ""; // 회원명
+          const birthDate = row[2] || ""; // 생년월일
+
+          // 필요한 데이터만 반환
+          return [memberNumber, memberName, birthDate];
+        })
+        .filter((member) => {
+          // 유효한 회원만 필터링 (빈 회원번호 제외, '회원번호' 헤더 제외)
+          return member[0] && member[0] !== "회원번호";
+        })
+        .sort((a, b) => {
+          // 회원명(인덱스 1)을 기준으로 오름차순 정렬
+          return a[1].localeCompare(b[1], 'ko');
+        });
+    } catch (error) {
+      console.error("회원 데이터 처리 오류:", error);
+      return [];
+    }
+  }
+
+  // 회원 데이터 표시
+  function displayMembers(members) {
+    const container = document.getElementById("p1-members-container");
+    if (!container) return;
+
+    // 컨테이너 비우기
+    container.innerHTML = "";
+
+    // 회원 정보가 없는 경우
+    if (!members || members.length === 0) {
+      container.innerHTML =
+        '<p class="p1-no-results">표시할 회원이 없습니다.</p>';
+      return;
+    }
+
+    // 각 회원별로 카드 생성
+    members.forEach((member, index) => {
+      const memberNumber = member[0]; // 회원번호
+      const memberName = member[1]; // 회원명
+      const birthDate = member[2]; // 생년월일
+
+      // 생년월일 포맷팅 (YYYYMMDD → YYYY-MM-DD)
+      let formattedBirth = "정보 없음";
+
+      if (birthDate) {
+        const birthStr = String(birthDate);
+        if (birthStr.length === 8) {
+          formattedBirth = `${birthStr.substring(0, 4)}-${birthStr.substring(
+            4,
+            6
+          )}-${birthStr.substring(6, 8)}`;
+        }
+      }
+
+      // 회원 카드 생성
+      const memberCard = document.createElement("div");
+      memberCard.className = "p1-member-card";
+
+      // 랜덤 파스텔 색상 클래스 추가 (1-8 사이의 랜덤 숫자)
+      const colorIndex = Math.floor(Math.random() * 8) + 1;
+      memberCard.classList.add(`pastel-color-${colorIndex}`);
+
+      memberCard.dataset.memberNumber = memberNumber;
+      memberCard.innerHTML = `
+                <h3>${memberName}</h3>
+                <p>회원번호: ${memberNumber}</p>
+                <p>생년월일: ${formattedBirth}</p>
+            `;
+
+      // 클릭 이벤트 추가
+      memberCard.addEventListener("click", function () {
+        selectMember(memberNumber, memberName, birthDate);
+      });
+
+      // 컨테이너에 추가
+      container.appendChild(memberCard);
+
+      // 순차적으로 애니메이션 적용
+      setTimeout(() => {
+        memberCard.classList.add("animated");
+      }, index * 100);
+    });
+
+    // 모든 카드가 생성된 후 하이라이트 적용
+    setTimeout(() => {
+      highlightMembersWithClasses();
+    }, members.length * 100 + 50); // 마지막 카드 애니메이션이 끝나기 직전에 적용
+  }
+
+  // 수업이 있는 회원 카드에 테두리 표시
+  function highlightMembersWithClasses() {
+    // 모든 회원 카드 초기화
+    const memberCards = document.querySelectorAll(".p1-member-card");
+    memberCards.forEach((card) => {
+      // 기존 클래스 제거 및 기본 스타일 적용
+      card.classList.remove("p1-has-classes");
+      // 배지 제거
+      const existingBadge = card.querySelector(".p1-class-badge");
+      if (existingBadge) {
+        card.removeChild(existingBadge);
+      }
+    });
+
+    // 이미 신청된 클래스가 있는지 확인
+    if (
+      window.totalData &&
+      window.totalData.classData &&
+      window.totalData.classData.length > 0
+    ) {
+      console.log("수업이 있는 회원 카드에 테두리 표시...");
+
+      // 신청된 회원번호 목록 추출
+      const memberNumbers = new Set();
+      window.totalData.classData.forEach((classItem) => {
+        if (classItem && classItem.length >= 11) {
+          const memberNumber = classItem[10]; // 회원번호
+          if (memberNumber) {
+            memberNumbers.add(memberNumber);
+          }
+        }
+      });
+
+      console.log("수업이 있는 회원번호:", [...memberNumbers]);
+
+      // 일치하는 회원 카드에 테두리 적용
+      memberCards.forEach((card) => {
+        const cardMemberNumber = card.dataset.memberNumber;
+        if (memberNumbers.has(cardMemberNumber)) {
+          // 클래스 추가
+          card.classList.add("p1-has-classes");
+
+          // 미리 등록된 클래스가 있음을 표시하는 배지 추가
+          if (!card.querySelector(".p1-class-badge")) {
+            const badge = document.createElement("div");
+            badge.className = "p1-class-badge";
+            badge.textContent = "신청완료";
+            card.appendChild(badge);
+          }
+        }
+      });
+    }
+  }
+
+  // 회원 선택 함수
+  function selectMember(memberNumber, memberName, birthDate) {
+    console.log("회원 선택됨:", memberNumber, memberName, birthDate);
+
+    // 선택된 회원 데이터 확인
+    const memberData = {
+      number: memberNumber,
+      name: memberName,
+      birth: birthDate,
+    };
+    console.log("선택된 회원 데이터:", memberData);
+
+    // 전역 상태에 선택된 회원 정보 저장
+    try {
+      console.log("전역 상태 저장 전:", window.appState);
+
+      // 해당 회원의 신청 클래스 데이터 추출
+      const appliedClasses = [];
+
+      // window.totalData에서 classData 확인
+      if (
+        window.totalData &&
+        window.totalData.classData &&
+        Array.isArray(window.totalData.classData)
+      ) {
+        console.log("해당 회원의 신청 클래스 검색 중...");
+
+        // classData에서 회원번호가 일치하는 항목 찾기
+        window.totalData.classData.forEach((classItem) => {
+          // classData 형식: [0]수업신청_id, [1]계획_id, [2]날짜, [3]차수, [4]시작시간, [5]종료시간,
+          // [6]직원번호, [7]직원명, [8]활동명, [9]생활영역, [10]회원번호, [11]회원명, [12]생년월일
+          if (
+            classItem &&
+            classItem.length >= 13 &&
+            classItem[10] === memberNumber
+          ) {
+            console.log("회원의 신청 클래스 찾음:", classItem[8]);
+
+            // 활동 신청 데이터 생성
+            const applicationData = {
+              activityId: classItem[1], // 계획_id
+              activityDate: String(classItem[2]), // 날짜(yyyymmdd형식)
+              classType: classItem[3], // 차수
+              startTime: String(classItem[4]), // 시작시간
+              endTime: String(classItem[5]), // 종료시간
+              employeeNumber: classItem[6], // 직원번호
+              instructor: classItem[7], // 직원명
+              title: classItem[8], // 활동명
+              lifeArea: classItem[9], // 생활영역
+              memberNumber: classItem[10], // 회원번호
+              memberName: classItem[11], // 회원명
+              memberBirth: classItem[12], // 생년월일
+            };
+
+            // 신청 클래스 배열에 추가
+            appliedClasses.push(applicationData);
+          }
+        });
+
+        console.log("추출된 신청 클래스 데이터:", appliedClasses);
+      } else {
+        console.warn("classData가 없어 신청 클래스를 가져올 수 없습니다.");
+      }
+
+      // 선택된 회원과 신청 클래스 정보 저장
+      window.updateState("selectedMember", memberData);
+      window.updateState("appliedClasses", appliedClasses);
+
+      console.log("전역 상태 저장 후:", window.appState);
+    } catch (error) {
+      console.error("전역 상태 업데이트 오류:", error);
+    }
+
+    // 페이드 아웃 효과 적용 후 페이지 이동
+    // 1. 현재 페이지 컨테이너 찾기
+    const pageContainer = document.querySelector(".member-select-page");
+    // 2. 페이드아웃 클래스 추가
+    pageContainer.classList.add("p1-fade-out");
+    // 3. 애니메이션 완료 후 페이지 전환
+    setTimeout(() => {
+      console.log("페이지 전환 전 전역 상태:", window.appState);
+      loadPage("class-select");
+    }, 400);
+  }
+
+  // 날짜 입력 필드 초기화
+  function initDateInput() {
+    const dateInput = document.getElementById("p1-date-input");
+    if (!dateInput) return;
+
+    // 전역 상태에서 날짜 가져오기
+    let selectedDate = window.appState.selectedDate;
+
+    if (selectedDate) {
+      // 날짜 객체인지 확인하고 문자열이면 변환
+      if (!(selectedDate instanceof Date)) {
+        selectedDate = new Date(selectedDate);
+      }
+    } else {
+      // 전역 상태에 날짜가 없으면 오늘 날짜 사용
+      selectedDate = new Date();
+      window.updateState("selectedDate", selectedDate);
+    }
+
+    // 입력 필드에 날짜 설정
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    const formattedDate = `${year}-${month}-${day}`;
+    dateInput.value = formattedDate;
+
+    // 날짜 변경 이벤트 리스너 추가
+    dateInput.addEventListener("change", handleDateChange);
+  }
+
+  // 날짜 변경 처리
+  function handleDateChange(event) {
+    const newDate = new Date(event.target.value);
+
+    // 전역 상태 업데이트
+    window.updateState("selectedDate", newDate);
+
+    // 새로운 날짜로 데이터 다시 로드
+    console.log("날짜 변경됨, 데이터 다시 로드");
+
+    // 날짜 형식 변환 (Date → yyyymmdd 형식)
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, "0");
+    const day = String(newDate.getDate()).padStart(2, "0");
+    const formattedDate = `${year}${month}${day}`;
+
+    console.log("날짜 변경: loadAllData 호출 시도", formattedDate);
+
+    // loadAllData 호출 전 totalData 확인
+    console.log("[DEBUG] 데이터 로드 전 window.totalData:", window.totalData);
+
+    // loadAllData 호출 시도
+    // 1. 전역 객체에서 직접 호출
+    if (typeof loadAllData === "function") {
+      console.log("loadAllData 함수 직접 호출");
+
+      try {
+        const result = loadAllData(formattedDate);
+        if (result && typeof result.then === "function") {
+          // Promise 처리
+          result
+            .then(() => {
+              console.log(
+                "[DEBUG] loadAllData 완료 후 window.totalData:",
+                window.totalData
+              );
+              if (window.totalData) {
+                console.log(
+                  "[DEBUG] memberData 길이:",
+                  window.totalData.memberData
+                    ? window.totalData.memberData.length
+                    : "없음"
+                );
+                console.log(
+                  "[DEBUG] classData 길이:",
+                  window.totalData.classData
+                    ? window.totalData.classData.length
+                    : "없음"
+                );
+                console.log(
+                  "[DEBUG] planData 길이:",
+                  window.totalData.planData
+                    ? window.totalData.planData.length
+                    : "없음"
+                );
+
+                // 첫 번째 항목 샘플 확인
+                if (
+                  window.totalData.planData &&
+                  window.totalData.planData.length > 0
+                ) {
+                  console.log(
+                    "[DEBUG] planData 첫 번째 항목 샘플:",
+                    window.totalData.planData[0]
+                  );
+                }
+              }
+
+              // 페이지 다시 로드 및 회원 카드 테두리 업데이트
+              loadMemberData();
+              // highlightMembersWithClasses는 loadMemberData 내부에서 호출됨
+            })
+            .catch((error) => {
+              console.error("[DEBUG] loadAllData Promise 오류:", error);
+              loadMemberData();
+            });
+        } else {
+          // Promise가 아닌 경우 짧은 지연 후 확인
+          setTimeout(() => {
+            console.log(
+              "[DEBUG] loadAllData 완료 후 window.totalData (setTimeout):",
+              window.totalData
+            );
+            if (window.totalData) {
+              console.log(
+                "[DEBUG] memberData 길이:",
+                window.totalData.memberData
+                  ? window.totalData.memberData.length
+                  : "없음"
+              );
+              console.log(
+                "[DEBUG] classData 길이:",
+                window.totalData.classData
+                  ? window.totalData.classData.length
+                  : "없음"
+              );
+              console.log(
+                "[DEBUG] planData 길이:",
+                window.totalData.planData
+                  ? window.totalData.planData.length
+                  : "없음"
+              );
+
+              if (
+                window.totalData.planData &&
+                window.totalData.planData.length > 0
+              ) {
+                console.log(
+                  "[DEBUG] planData 첫 번째 항목 샘플:",
+                  window.totalData.planData[0]
+                );
+              }
+            }
+
+            // 페이지 다시 로드 및 회원 카드 테두리 업데이트
+            loadMemberData();
+            // highlightMembersWithClasses는 loadMemberData 내부에서 호출됨
+          }, 500);
+        }
+      } catch (error) {
+        console.error("[DEBUG] loadAllData 호출 중 오류 발생:", error);
+        loadMemberData();
+      }
+      return;
+    } else {
+      console.warn(
+        "loadAllData 함수를 찾을 수 없음, loadMemberData 함수로 대체"
+      );
+      loadMemberData();
+      // highlightMembersWithClasses는 loadMemberData 내부에서 호출됨
+    }
+  }
+
+  // 회원 필터링 - 검색어만으로 필터링하도록 수정
+  function filterMembers() {
+    const searchText = document
+      .getElementById("p1-search-input")
+      .value.toLowerCase();
+    const memberCards = document.querySelectorAll(".p1-member-card");
+
+    memberCards.forEach((card) => {
+      const text = card.textContent.toLowerCase();
+      if (text.includes(searchText)) {
+        card.style.display = "block";
+      } else {
+        card.style.display = "none";
+      }
+    });
+  }
+
+  // 로딩 표시/숨김 기능
+  function showLoading(isShow) {
+    const loadingElement = document.getElementById("p1-loading");
+    if (loadingElement) {
+      loadingElement.style.display = isShow ? "flex" : "none";
+    }
+  }
+
+  // 페이지가 직접 로드될 때만 초기화 (SPA에서는 window.initializeMemberSelect()를 통해 초기화됨)
+  if (window.location.pathname.includes("member-select.html")) {
+    initializePage();
+  }
+</script>
