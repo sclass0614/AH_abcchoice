@@ -2,34 +2,23 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
     <base target="_top" />
     <title>SPA Example</title>
     <!-- 페이지별 스타일시트를 동적으로 로드하기 위한 link 태그 -->
     <!-- 각 페이지 스타일을 미리 link로 선언 (disabled 상태) -->
     <link
       rel="stylesheet"
-      href="style-member.css"
+      href="https://cdn.jsdelivr.net/gh/Sclass-LMJ/activityClass@main/style-member-v01.css"
       id="style-member-select"
       disabled
     />
     <link
       rel="stylesheet"
-      href="style-class.css"
+      href="https://cdn.jsdelivr.net/gh/Sclass-LMJ/activityClass@main/style-class-v01.css"
       id="style-class-select"
       disabled
     />
-
-    <!-- Supabase 클라이언트 라이브러리 추가 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4"></script>
-    <!-- Supabase 스크립트 추가 -->
-    <script src="supabase.js"></script>
-
-    <!-- authCheck.js → window.supabase 사용 -->
-    <script type="module" src="https://sclass0614.github.io/authCheck/authCheck.js"></script>
 
     <!-- <link id="page-style" rel="stylesheet" href="" /> -->
     <style>
@@ -105,6 +94,9 @@
           transform: rotate(360deg);
         }
       }
+
+
+      
     </style>
   </head>
 
@@ -164,40 +156,36 @@
         }
       };
 
-      // 회원 데이터 로드 함수 (Supabase 사용)
       async function loadMemberData(formattedDate) {
         console.log(`loadMemberData 호출: ${formattedDate}`);
-        try {
-          const result = await getselectedMemberData(formattedDate);
-          return result;
-        } catch (error) {
-          console.error("회원 데이터 로드 오류:", error);
-          throw error;
-        }
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve(result))
+            .withFailureHandler((error) => reject(error))
+            .getselectedMemberData_gs(formattedDate); // yyyymmdd 형식 전달
+        });
       }
 
-      // 수업신청 데이터 로드 함수 (Supabase 사용)
+      // 수업신청 데이터 로드
       async function loadClassData(formattedDate) {
         console.log(`loadClassData 호출: ${formattedDate}`);
-        try {
-          const result = await getselectedClassData(formattedDate);
-          return result;
-        } catch (error) {
-          console.error("수업신청 데이터 로드 오류:", error);
-          throw error;
-        }
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve(result))
+            .withFailureHandler((error) => reject(error))
+            .getselectedClassData_gs(formattedDate); // yyyymmdd 형식 전달
+        });
       }
 
-      // 수업계획 데이터 로드 함수 (Supabase 사용)
+      // 수업계획 데이터 로드
       async function loadPlanData(formattedDate) {
         console.log(`loadPlanData 호출: ${formattedDate}`);
-        try {
-          const result = await getselectedPlanData(formattedDate);
-          return result;
-        } catch (error) {
-          console.error("수업계획 데이터 로드 오류:", error);
-          throw error;
-        }
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler((result) => resolve(result))
+            .withFailureHandler((error) => reject(error))
+            .getselectedPlanData_gs(formattedDate); // yyyymmdd 형식 전달
+        });
       }
 
       // 모든 데이터 로드 함수
@@ -217,9 +205,6 @@
           // 로딩 상태 표시
           const loading = document.querySelector(".index-page-loading");
           if (loading) loading.classList.add("index-active");
-          
-          // Supabase 클라이언트 초기화
-          initSupabase();
 
           // 병렬로 데이터 로드
           const [memberData, classData, planData] = await Promise.all([
@@ -250,8 +235,14 @@
         }
       }
 
+      // Google Apps Script 환경인지 확인하는 변수
+      const isGAS =
+        typeof google !== "undefined" && google.script && google.script.run;
+
       // 페이지 로드 함수
       // @param {string} pageName - 로드할 페이지 이름
+      // 회원 데이터 로드
+
       async function loadPage(pageName) {
         try {
           // 로딩 표시 시작
@@ -261,43 +252,24 @@
           loading.classList.add("index-active");
           container.classList.remove("index-visible");
 
-          // 일반 웹 환경에서는 fetch를 사용하여 HTML 파일을 직접 로드
-          const pageResult = await fetch(`${pageName}.html`);
-          const html = await pageResult.text();
-
-          // 데이터 로딩이 필요한 페이지인 경우 데이터 미리 로드
-          if (pageName === "class-select" || pageName === "member-select") {
-            try {
-              // 현재 선택된 날짜 또는 오늘 날짜 사용
-              const selectedDate = window.appState?.selectedDate || new Date();
-              const formattedDate = formatDate(selectedDate);
-
-              // 데이터 로드 (250ms 기다린 후에 시작)
-              await new Promise((resolve) => setTimeout(resolve, 250));
-              await loadAllData(formattedDate);
-            } catch (dataError) {
-              console.warn("데이터 로드 중 오류:", dataError);
-              // 데이터 로드 실패해도 페이지는 계속 렌더링
-            }
-          }
-
-          // 스타일 변경
-          setActiveStyle(pageName);
-
-          // CSS와 데이터 로딩 후 잠시 기다린 후 페이지 렌더링 (부드러운 전환을 위해)
-
-          setTimeout(() => {
+          if (isGAS) {
+            // Google Apps Script 환경에서는 서버사이드 함수를 호출
+            google.script.run
+              .withSuccessHandler((html) => {
+                setActiveStyle(pageName);
+                renderPage(html, pageName);
+              })
+              .getHtmlFromFile(pageName);
+          } else {
+            // 일반 웹 환경에서는 fetch를 사용하여 HTML 파일을 직접 로드
+            const pageResult = await fetch(`${pageName}.html`);
+            const html = await pageResult.text();
             renderPage(html, pageName);
-          }, 300);
+          }
         } catch (e) {
           console.error("페이지 로딩 오류:", e);
           document.getElementById("index-container").innerHTML =
             "<p>페이지를 불러올 수 없습니다.</p>";
-
-          // 오류 발생 시 로딩 표시 숨김
-          document
-            .querySelector(".index-page-loading")
-            .classList.remove("index-active");
         }
       }
 
@@ -305,6 +277,15 @@
       // @param {string} html - 렌더링할 HTML 컨텐츠
       // @param {string} pageName - 페이지 이름
       function renderPage(html, pageName) {
+        //페이지별 스타일시트 적용
+
+        // setActiveStyle(pageName); // 제거
+
+        // const styleHref = styleMap[pageName];
+        // if (styleHref) {
+        //   document.getElementById("page-style").href = styleHref;
+        // }
+
         const container = document.getElementById("index-container");
         const loading = document.querySelector(".index-page-loading");
 
@@ -326,29 +307,28 @@
           document.body.appendChild(newScript);
         });
 
-        // 모든 리소스가 로드된 후 페이지 표시 (지연 적용)
-        setTimeout(() => {
-          // 페이지별 초기화 함수 호출
-          if (
-            pageName === "class-select" &&
-            typeof window.initializeClassSelect === "function"
-          ) {
-            window.initializeClassSelect();
-          } else if (
-            pageName === "member-select" &&
-            typeof window.initializeMemberSelect === "function"
-          ) {
-            window.initializeMemberSelect();
-          }
-
-          // 모든 설정이 끝난 후 로딩 숨기고 컨테이너 표시
+        // 모든 리소스가 로드된 후 페이지 표시
+        window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             // 로딩 숨기기
             loading.classList.remove("index-active");
             // 컨테이너 표시
             container.classList.add("index-visible");
+
+            // 페이지별 초기화 함수 호출
+            if (
+              pageName === "class-select" &&
+              typeof window.initializeClassSelect === "function"
+            ) {
+              window.initializeClassSelect();
+            } else if (
+              pageName === "member-select" &&
+              typeof window.initializeMemberSelect === "function"
+            ) {
+              window.initializeMemberSelect();
+            }
           });
-        }, 300);
+        });
       }
 
       // 페이지 로드될 때 appState 초기화 및 초기 페이지 로드
@@ -371,10 +351,6 @@
             planData: null,
           };
         }
-
-        // Supabase 클라이언트 초기화
-        initSupabase();
-        console.log("Supabase 클라이언트 초기화 완료");
 
         // 오늘 날짜
         const today = new Date();

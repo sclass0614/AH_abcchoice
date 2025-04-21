@@ -56,7 +56,7 @@
             <strong>활동:</strong> <span id="confirm-activity-name">-</span>
           </p>
           <p><strong>시간:</strong> <span id="confirm-time">-</span></p>
-          <p><strong>직원명:</strong> <span id="confirm-instructor">-</span></p>
+          <p><strong>담당자:</strong> <span id="confirm-instructor">-</span></p>
         </div>
         <p>위 활동을 신청하시겠습니까?</p>
         <div class="modal-buttons">
@@ -649,7 +649,7 @@
         description;
 
       // 스프레드시트 데이터 배열 처리:
-      // [0]계획_id, [1]날짜, [2]시작시간, [3]종료시간, [4]직원번호, [5]직원명, [6]활동명,
+      // [0]계획_ID, [1]날짜, [2]시작시간, [3]종료시간, [4]직원번호, [5]담당자, [6]활동명,
       // [7]생활영역, [8]장소, [9]준비물품, [10]내용및특이사항, [11]활동기록, [12]참고사진URL
       id = activity[0] || "";
       startTime = activity[2] ? String(activity[2]) : "";
@@ -674,8 +674,8 @@
 
       // lifeArea 처리 - '-' 기준으로 분할하고 index 1의 값만 사용
       let displayLifeArea = "";
-      if (lifeArea && lifeArea.includes("-")) {
-        const lifeAreaParts = lifeArea.split("-");
+      if (lifeArea && lifeArea.includes('-')) {
+        const lifeAreaParts = lifeArea.split('-');
         if (lifeAreaParts.length > 1) {
           displayLifeArea = lifeAreaParts[1].trim();
         } else {
@@ -687,7 +687,7 @@
 
       // 카드 ID 생성
       const cardId = `card-${id}`;
-
+      
       // 랜덤 파스텔 색상 클래스 생성 (1-8 사이의 랜덤 숫자)
       const colorIndex = Math.floor(Math.random() * 8) + 1;
       const colorClass = `pastel-color-${colorIndex}`;
@@ -857,16 +857,12 @@
   }
 
   // 모바일 환경에서 카드 외부 클릭 이벤트 추가
-  document.addEventListener("click", function (event) {
+  document.addEventListener("click", function(event) {
     // 활성화된 카드가 있는지 확인
     const activeCard = document.querySelector(".product-card.active");
-
+    
     // 활성화된 카드가 있고, 클릭한 요소가 카드나 카드 내부 요소가 아닌 경우
-    if (
-      activeCard &&
-      !event.target.closest(".product-card") &&
-      !event.target.classList.contains("apply-class-btn")
-    ) {
+    if (activeCard && !event.target.closest(".product-card") && !event.target.classList.contains("apply-class-btn")) {
       // 모바일 환경인지 확인 (768px 이하)
       if (window.innerWidth <= 768) {
         // 모든 카드 초기화
@@ -928,18 +924,14 @@
 
     try {
       // planData가 없거나 빈 배열인 경우 바로 처리
-      if (
-        !window.totalData ||
-        !window.totalData.planData ||
-        window.totalData.planData.length === 0
-      ) {
+      if (!window.totalData || !window.totalData.planData || window.totalData.planData.length === 0) {
         console.warn("계획 데이터가 없음: 빈 배열 또는 정의되지 않음");
-
+        
         // 데이터 없음 처리
         handleNoPlanData();
         return;
       }
-
+      
       // 전역변수 totalData에서 planData 사용
       console.log(
         "전역변수 totalData.planData 사용:",
@@ -947,6 +939,7 @@
       );
       const result = window.totalData.planData;
       processPlanData(result);
+      
     } catch (error) {
       console.error("계획 데이터 처리 중 오류 발생:", error);
       showErrorMessage("활동 계획 데이터를 처리하는 중 오류가 발생했습니다.");
@@ -955,33 +948,33 @@
     // 데이터가 없을 때 처리하는 함수
     function handleNoPlanData() {
       console.warn("handleNoPlanData 함수 호출됨");
-
+      
       // 로딩 중단
       showLoading(false);
-
+      
       // 메시지 표시
       const message = document.createElement("div");
       message.className = "success-message";
       message.style.backgroundColor = "#ff9800"; // 주황색 경고 메시지
       message.textContent = "해당 날짜에 등록된 활동이 없습니다.";
       document.body.appendChild(message);
-
+      
       // 메시지 표시 및 페이지 전환
       setTimeout(() => {
         message.classList.add("show");
-
+        
         setTimeout(() => {
           message.classList.remove("show");
-
+          
           setTimeout(() => {
             document.body.removeChild(message);
-
+            
             // 페이지 전환 효과 적용
             const pageEl = document.querySelector(".class-select-page");
             if (pageEl) {
               pageEl.classList.add("p1-fade-out");
             }
-
+            
             // 회원 선택 페이지로 이동
             setTimeout(() => {
               loadPage("member-select");
@@ -996,32 +989,32 @@
       // 결과가 비어있는 경우 확인
       if (!result || result.length === 0) {
         console.warn("해당 날짜에 계획 데이터가 없음");
-
+        
         // 로딩 중단
         showLoading(false);
-
+        
         // 메시지 표시
         const message = document.createElement("div");
         message.className = "success-message";
         message.style.backgroundColor = "#ff9800"; // 주황색 경고 메시지
         message.textContent = "해당 날짜에 등록된 활동이 없습니다.";
         document.body.appendChild(message);
-
+        
         // 메시지 표시 및 페이지 전환
         setTimeout(() => {
           message.classList.add("show");
-
+          
           setTimeout(() => {
             message.classList.remove("show");
-
+            
             setTimeout(() => {
               document.body.removeChild(message);
-
+              
               // 페이지 전환 효과 적용
               document
                 .querySelector(".class-select-page")
                 .classList.add("p1-fade-out");
-
+              
               // 회원 선택 페이지로 이동
               setTimeout(() => {
                 loadPage("member-select");
@@ -1029,7 +1022,7 @@
             }, 200);
           }, 2000);
         }, 10);
-
+        
         return;
       }
 
@@ -1059,7 +1052,7 @@
       };
 
       // 스프레드시트 데이터 매핑
-      // 스프레드시트 열: 계획_id, 날짜, 시작시간, 종료시간, 직원번호, 직원명, 활동명,
+      // 스프레드시트 열: 계획_ID, 날짜, 시작시간, 종료시간, 직원번호, 담당자, 활동명,
       // [7]생활영역, [8]장소, [9]준비물품, [10]내용및특이사항, [11]활동기록, [12]참고사진URL
       result.forEach((row) => {
         const startTime = String(row[2]); // 시작 시간
@@ -1208,7 +1201,7 @@
       classType: CLASS_TIMES.getLabelByTime(selectedActivity.startTime), // 차수
       startTime: selectedActivity.startTime, // 시작시간
       endTime: selectedActivity.endTime, // 종료시간
-      instructor: selectedActivity.instructor, // 직원명
+      instructor: selectedActivity.instructor, // 담당자
       employeeNumber: selectedActivity.employeeNumber, // 직원번호
       title: selectedActivity.title, // 활동명
       lifeArea: selectedActivity.lifeArea, // 생활영역
@@ -1319,103 +1312,87 @@
     }, 400);
   }
 
-  // 모든 신청 초기화 처리
+  // 모든 클래스 초기화
   function resetAllClasses() {
-    console.log("모든 클래스 초기화 함수 호출");
-
-    // 신청 데이터가 없으면 무시
-    if (!appliedClasses || appliedClasses.length === 0 || !selectedMember) {
-      console.log("초기화할 신청 데이터가 없음");
-
-      // 신청 데이터가 없어도 회원 선택 페이지로 이동
-      moveToMemberSelect();
+    // 선택된 회원이 없으면 처리하지 않음
+    if (!selectedMember || !selectedMember.number) {
+      alert("선택된 회원이 없습니다.");
       return;
     }
 
-    // 확인 메시지 없이 바로 진행
-    console.log("신청 취소 진행");
+    // 선택된 날짜 가져오기
+    const dateInput = document.getElementById("date-input");
+    let selectedDateStr = "";
+
+    if (dateInput && dateInput.value) {
+      // yyyy-mm-dd 형식을 yyyymmdd 형식으로 변환
+      selectedDateStr = dateInput.value.replace(/-/g, "");
+    } else {
+      // 날짜 입력이 없으면 오늘 날짜 사용
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      selectedDateStr = `${year}${month}${day}`;
+    }
+
+    // 사용자 확인 부분 제거 - 바로 초기화 진행
 
     // 로딩 표시
     showLoading(true);
 
-    // 날짜 정보 가져오기
-    const dateInput = document.getElementById("date-input");
-    const activityDate = dateInput?.value
-      ? dateInput.value.replace(/-/g, "")
-      : formatDate(new Date()).replace(/-/g, "");
+    google.script.run
+      .withSuccessHandler(function (result) {
+        console.log("클래스 초기화 성공:", result);
+        showLoading(false);
 
-    // Supabase 함수 호출하여 해당 회원의 모든 클래스 취소
-    cancelAllClasses(selectedMember.number, activityDate)
-      .then((response) => {
-        console.log("취소 응답:", response);
+        // 성공 메시지 표시
+        const message = document.createElement("div");
+        message.className = "success-message";
+        message.textContent =
+          result.message || "클래스 신청이 초기화되었습니다.";
+        document.body.appendChild(message);
 
-        if (response.success) {
-          // 신청한 클래스 배열 초기화
-          appliedClasses = [];
-          window.updateState("appliedClasses", []);
-
-          // 화면에서 신청 클래스 태그 업데이트
-          displayAppliedClasses();
-
-          // 성공 메시지 표시 (선택 사항 - 필요없으면 제거 가능)
-          const message = document.createElement("div");
-          message.className = "success-message";
-          message.textContent = `${selectedMember.name} 회원님의 모든 신청이 취소되었습니다.`;
-          document.body.appendChild(message);
+        // 메시지 표시 및 페이지 전환
+        setTimeout(() => {
+          message.classList.add("show");
 
           setTimeout(() => {
-            message.classList.add("show");
+            message.classList.remove("show");
 
             setTimeout(() => {
-              message.classList.remove("show");
+              document.body.removeChild(message);
 
+              // 신청 데이터 초기화
+              appliedClasses = [];
+              window.updateState("appliedClasses", []);
+              
+              // 전역 데이터도 초기화 - 새로운 데이터를 로드하도록
+              if (window.totalData) {
+                window.totalData.classData = null;
+              }
+
+              // 페이지 전환 효과 적용
+              document
+                .querySelector(".class-select-page")
+                .classList.add("p1-fade-out");
+
+              // 회원 선택 페이지로 이동
               setTimeout(() => {
-                document.body.removeChild(message);
-
-                // 회원 선택 페이지로 이동
-                moveToMemberSelect();
+                loadPage("member-select");
               }, 200);
-            }, 1000);
-          }, 10);
-        } else {
-          // 오류 메시지 표시
-          alert(`신청 취소 중 오류 발생: ${response.message}`);
-          // 오류가 있어도 회원 선택 페이지로 이동
-          moveToMemberSelect();
-        }
-
-        // 로딩 숨김
-        showLoading(false);
+            }, 200);
+          }, 1000);
+        }, 10);
       })
-      .catch((error) => {
-        console.error("취소 오류:", error);
+      .withFailureHandler(function (error) {
+        console.error("클래스 초기화 실패:", error);
+        showLoading(false);
 
         // 오류 메시지 표시
-        alert(`신청 취소 중 오류 발생: ${error.message || error}`);
-
-        // 로딩 숨김
-        showLoading(false);
-
-        // 오류가 있어도 회원 선택 페이지로 이동
-        moveToMemberSelect();
-      });
-  }
-
-  // 회원 선택 페이지로 이동하는 함수
-  function moveToMemberSelect() {
-    // 페이지 전환 효과 적용
-    const pageEl = document.querySelector(".class-select-page");
-    if (pageEl) {
-      pageEl.classList.add("p1-fade-out");
-
-      // 회원 선택 페이지로 이동
-      setTimeout(() => {
-        loadPage("member-select");
-      }, 400);
-    } else {
-      // 페이지 요소가 없으면 바로 이동
-      loadPage("member-select");
-    }
+        alert("클래스 신청 초기화 중 오류가 발생했습니다: " + error);
+      })
+      .cancelAllClasses_gs(selectedMember.number, selectedDateStr);
   }
 
   // 로딩 표시/숨김 기능
@@ -1640,128 +1617,109 @@
 
     // 먼저 모달 닫기
     closeCompleteModal();
-
+    
     // 그 다음 로딩 표시
     setTimeout(() => {
       showLoading(true);
+      
+      // 수업신청_ID 생성 (회원번호-yyyymmddhhmmssSSS)
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const seconds = String(now.getSeconds()).padStart(2, "0");
+      const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
 
-      // 디버깅: 테이블 구조 확인 (테이블 구조 확인 함수가 있다면 호출)
-      if (typeof checkColumns === "function") {
-        console.log("테이블 구조 확인 함수 호출");
-        checkColumns()
-          .then(() => {
-            console.log("테이블 구조 확인 완료, 데이터 저장 진행");
-            saveData();
-          })
-          .catch((error) => {
-            console.error("테이블 구조 확인 중 오류:", error);
-            saveData(); // 오류가 있더라도 데이터 저장 시도
-          });
-      } else {
-        // 테이블 구조 확인 함수가 없으면 바로 데이터 저장
-        saveData();
-      }
+      const timeStamp = `${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
+      const applicationId = `class-${selectedMember.number}-${timeStamp}`;
 
-      // 실제 데이터 저장 함수
-      function saveData() {
-        // 수업신청_id 생성 (회원번호-yyyymmddhhmmssSSS)
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const day = String(now.getDate()).padStart(2, "0");
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        const seconds = String(now.getSeconds()).padStart(2, "0");
-        const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+      console.log("생성된 수업신청_ID:", applicationId);
 
-        const timeStamp = `${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
-        const applicationId = `class-${selectedMember.number}-${timeStamp}`;
+      // 구글 스프레드시트에 저장할 데이터 준비
+      const rowsData = appliedClasses.map((classItem) => {
+        // 날짜 확인 및 포맷팅 (YYYY-MM-DD → YYYYMMDD)
+        let activityDate = classItem.activityDate;
+        if (activityDate && activityDate.includes("-")) {
+          activityDate = activityDate.replace(/-/g, "");
+        }
 
-        console.log("생성된 수업신청_id:", applicationId);
+        // 생년월일 포맷팅 (이미 YYYYMMDD 형식이면 그대로 사용)
+        let memberBirth = classItem.memberBirth;
+        if (memberBirth && String(memberBirth).includes("-")) {
+          memberBirth = String(memberBirth).replace(/-/g, "");
+        }
 
-        // 수파베이스에 저장할 데이터 준비
-        const rowsData = appliedClasses.map((classItem) => {
-          // 날짜 확인 및 포맷팅 (YYYY-MM-DD → YYYYMMDD)
-          let activityDate = classItem.activityDate;
-          if (activityDate && activityDate.includes("-")) {
-            activityDate = activityDate.replace(/-/g, "");
-          }
+        // 행 데이터 구성
+        // (수업신청_ID, 계획_ID, 날짜, 차수, 시작시간, 종료시간, 직원번호, 담당자, 활동명, 생활영역, 회원번호, 회원명, 생년월일)
+        return [
+          applicationId, // 수업신청_ID
+          classItem.activityId, // 계획_ID
+          activityDate, // 날짜
+          classItem.classType, // 차수
+          classItem.startTime, // 시작시간
+          classItem.endTime, // 종료시간
+          classItem.employeeNumber, // 직원번호
+          classItem.instructor, // 담당자
+          classItem.title, // 활동명
+          classItem.lifeArea, // 생활영역
+          classItem.memberNumber, // 회원번호
+          classItem.memberName, // 회원명
+          memberBirth, // 생년월일
+        ];
+      });
 
-          // 생년월일 포맷팅 (이미 YYYYMMDD 형식이면 그대로 사용)
-          let memberBirth = classItem.memberBirth;
-          if (memberBirth && String(memberBirth).includes("-")) {
-            memberBirth = String(memberBirth).replace(/-/g, "");
-          }
+      console.log("스프레드시트에 저장할 데이터:", rowsData);
 
-          // 행 데이터 구성
-          // (수업신청_id, 계획_id, 날짜, 차수, 시작시간, 종료시간, 직원번호, 직원명, 활동명, 생활영역, 회원번호, 회원명, 생년월일)
-          return [
-            applicationId, // 수업신청_id
-            classItem.activityId, // 계획_id
-            activityDate, // 날짜
-            classItem.classType, // 차수
-            classItem.startTime, // 시작시간
-            classItem.endTime, // 종료시간
-            classItem.employeeNumber, // 직원번호
-            classItem.instructor, // 직원명
-            classItem.title, // 활동명
-            classItem.lifeArea, // 생활영역
-            classItem.memberNumber, // 회원번호
-            classItem.memberName, // 회원명
-            memberBirth, // 생년월일
-          ];
-        });
+      // Google Apps Script로 데이터 전송
+      google.script.run
+        .withSuccessHandler(function (response) {
+          console.log("신청 데이터 저장 성공:", response);
+          
+          // 성공 메시지 표시
+          const message = document.createElement("div");
+          message.className = "success-message";
+          message.textContent = "모든 활동 신청이 완료되었습니다!";
+          document.body.appendChild(message);
 
-        console.log("수파베이스에 저장할 데이터:", rowsData);
+          // 메시지 표시 및 페이지 전환
+          setTimeout(() => {
+            message.classList.add("show");
 
-        // Supabase로 데이터 전송
-        appendClassrow(rowsData)
-          .then((response) => {
-            console.log("신청 데이터 저장 성공:", response);
-
-            // 성공 메시지 표시
-            const message = document.createElement("div");
-            message.className = "success-message";
-            message.textContent = "모든 활동 신청이 완료되었습니다!";
-            document.body.appendChild(message);
-
-            // 메시지 표시 및 페이지 전환
             setTimeout(() => {
-              message.classList.add("show");
+              message.classList.remove("show");
 
               setTimeout(() => {
-                message.classList.remove("show");
+                document.body.removeChild(message);
 
+                // 신청 데이터 초기화
+                appliedClasses = [];
+                window.updateState("appliedClasses", []);
+
+                // 페이지 전환 효과 적용
+                document
+                  .querySelector(".class-select-page")
+                  .classList.add("p1-fade-out");
+
+                // 회원 선택 페이지로 이동
                 setTimeout(() => {
-                  document.body.removeChild(message);
-
-                  // 신청 데이터 초기화
-                  appliedClasses = [];
-                  window.updateState("appliedClasses", []);
-
-                  // 페이지 전환 효과 적용
-                  document
-                    .querySelector(".class-select-page")
-                    .classList.add("p1-fade-out");
-
-                  // 회원 선택 페이지로 이동
-                  setTimeout(() => {
-                    loadPage("member-select");
-                  }, 200);
+                  loadPage("member-select");
                 }, 200);
-              }, 1000);
-            }, 10);
+              }, 200);
+            }, 1000);
+          }, 10);
+          
+          showLoading(false);
+        })
+        .withFailureHandler(function (error) {
+          console.error("신청 데이터 저장 실패:", error);
+          showLoading(false);
 
-            showLoading(false);
-          })
-          .catch((error) => {
-            console.error("신청 데이터 저장 실패:", error);
-            showLoading(false);
-
-            // 오류 메시지 표시
-            alert("활동 신청 데이터 저장에 실패했습니다: " + error);
-          });
-      }
+          // 오류 메시지 표시
+          alert("활동 신청 데이터 저장에 실패했습니다: " + error);
+        })
+        .appendClassrow_gs(rowsData);
     }, 50); // 모달이 완전히 닫힌 후 로딩 표시
   }
 
