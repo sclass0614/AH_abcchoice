@@ -2,31 +2,49 @@
 const SUPABASE_URL = "https://dfomeijvzayyszisqflo.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmb21laWp2emF5eXN6aXNxZmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4NjYwNDIsImV4cCI6MjA2MDQ0MjA0Mn0.-r1iL04wvPNdBeIvgxqXLF2rWqIUX5Ot-qGQRdYo_qk";
 
+// Supabase 클라이언트를 저장할 전역 변수
+let supabaseClient = null;
+
 // Supabase 클라이언트 초기화 함수
+function initSupabase() {
+  if (!supabaseClient && window.supabase) {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+  return supabaseClient;
+}
+
+window.supabase = initSupabase();
+
+// 하위 호환성을 위한 래퍼 함수
 async function createClient() {
-  if (!window.supabase) {
+  // Supabase 클라이언트가 초기화되지 않았고 window.supabase도 없는 경우
+  if (!supabaseClient && !window.supabase) {
     // Supabase 클라이언트 라이브러리 동적 로드
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4';
       script.onload = () => {
-        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        resolve(client);
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        resolve(supabaseClient);
       };
       script.onerror = () => {
         reject(new Error('Supabase 클라이언트 라이브러리 로드 실패'));
       };
       document.head.appendChild(script);
     });
-  } else {
-    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
+  
+  // 이미 초기화된 클라이언트가 있는 경우 또는 초기화 후 반환
+  if (!supabaseClient && window.supabase) {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+  return supabaseClient;
 }
 
 // 선택한 날짜에 해당하는 회원 데이터를 가져오는 함수
 async function getselectedMemberData(selectedDate) {
   try {
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 회원 데이터 조회 (상담회원 제외, 입소일과 퇴소일 범위에 있는 회원만)
     const { data, error } = await client
@@ -57,7 +75,7 @@ async function getselectedMemberData(selectedDate) {
 // 선택한 날짜에 해당하는 수업계획 데이터를 가져오는 함수
 async function getselectedPlanData(selectedDate) {
   try {
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 해당 날짜의 수업계획 데이터 조회
     const { data, error } = await client
@@ -94,7 +112,7 @@ async function getselectedPlanData(selectedDate) {
 // 선택한 날짜에 해당하는 수업신청 데이터를 가져오는 함수
 async function getselectedClassData(selectedDate) {
   try {
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 해당 날짜의 수업신청 데이터 조회
     const { data, error } = await client
@@ -131,7 +149,7 @@ async function getselectedClassData(selectedDate) {
 // 테이블 구조 확인 함수 추가
 async function getTableStructure(tableName) {
   try {
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 테이블의 데이터를 1개만 가져오기(구조 확인 목적)
     const { data, error } = await client
@@ -171,7 +189,7 @@ async function appendClassrowFixed(rowsData) {
       };
     }
 
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 기존 데이터 삭제 (같은 회원, 같은 날짜)
     const memberNumber = rowsData[0][10]; // 첫 번째 행에서 회원번호 가져오기
@@ -241,7 +259,7 @@ async function appendClassrowFixed(rowsData) {
 // 회원의 모든 활동 신청을 취소하는 함수
 async function cancelAllClasses(memberNumber, dateValue) {
   try {
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 해당 회원과 날짜의 데이터 삭제
     const { data: deletedData, error } = await client
@@ -282,7 +300,7 @@ async function appendClassrowWithVariations(rowsData) {
       };
     }
 
-    const client = await createClient();
+    const client = await initSupabase();
 
     // 테이블 구조 확인
     await getTableStructure('activities_choice');
