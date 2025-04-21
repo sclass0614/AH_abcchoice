@@ -7,7 +7,7 @@ let supabaseClient = null;
 
 // Supabase 클라이언트 초기화 함수
 function initSupabase() {
-  if (!supabaseClient && window.supabase) {
+  if (!supabaseClien) {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
   return supabaseClient;
