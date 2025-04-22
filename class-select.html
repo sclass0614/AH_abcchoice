@@ -636,8 +636,15 @@
       container.innerHTML = "";
     }
 
+    // 활동명(title) 기준으로 오름차순 정렬
+    const sortedActivities = [...activities].sort((a, b) => {
+      const titleA = a[6] || "제목 없음";
+      const titleB = b[6] || "제목 없음";
+      return titleA.localeCompare(titleB);
+    });
+
     // 활동별로 카드 생성
-    activities.forEach((activity) => {
+    sortedActivities.forEach((activity) => {
       let id,
         title,
         startTime,
@@ -662,7 +669,7 @@
       description = activity[10] || "내용 정보가 없습니다";
       imageUrl =
         activity[12] ||
-        "https://newsimg.hankookilbo.com/cms/articlerelease/2021/02/05/6e089997-44db-4f18-97dd-ee337f9a5810.jpg";
+        "https://drive.google.com/file/d/13w-jWjuMLa-mUG9w9LqeiwfC6qG_GUVk/view";
 
       // 시간 포맷팅 (HHMM → HH:MM)
       const formattedStartTime = startTime
