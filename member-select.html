@@ -167,14 +167,28 @@
       // 데이터 형식 확인 및 변환
       return data
         .map((row) => {
-          // Supabase에서 넘어오는 데이터 순서
-          // [0]: 회원번호, [1]: 회원명, [2]: 생년월일
-          const memberNumber = row[0] || ""; // 회원번호
-          const memberName = row[1] || ""; // 회원명
-          const birthDate = row[2] || ""; // 생년월일
+          // 데이터가 객체 형태인 경우 (키가 한글인 객체)
+          if (row && typeof row === 'object' && !Array.isArray(row) && row.회원번호) {
+            const memberNumber = row.회원번호 || ""; // 회원번호
+            const memberName = row.회원명 || ""; // 회원명
+            const birthDate = row.생년월일 || ""; // 생년월일
+            
+            // 필요한 데이터만 반환
+            return [memberNumber, memberName, birthDate];
+          } 
+          // 배열 형태인 경우 (기존 코드)
+          else if (Array.isArray(row)) {
+            // Supabase에서 넘어오는 데이터 순서
+            // [0]: 회원번호, [1]: 회원명, [2]: 생년월일
+            const memberNumber = row[0] || ""; // 회원번호
+            const memberName = row[1] || ""; // 회원명
+            const birthDate = row[2] || ""; // 생년월일
 
-          // 필요한 데이터만 반환
-          return [memberNumber, memberName, birthDate];
+            // 필요한 데이터만 반환
+            return [memberNumber, memberName, birthDate];
+          }
+          // 그 외 형태는 빈 배열 반환
+          return ["", "", ""];
         })
         .filter((member) => {
           // 유효한 회원만 필터링 (빈 회원번호 제외, '회원번호' 헤더 제외)
@@ -284,7 +298,15 @@
       // 신청된 회원번호 목록 추출
       const memberNumbers = new Set();
       window.totalData.classData.forEach((classItem) => {
-        if (classItem && classItem.length >= 11) {
+        // 객체 형태인 경우 (키가 한글인 객체)
+        if (classItem && typeof classItem === 'object' && !Array.isArray(classItem) && classItem.회원번호) {
+          const memberNumber = classItem.회원번호;
+          if (memberNumber) {
+            memberNumbers.add(memberNumber);
+          }
+        } 
+        // 배열 형태인 경우 (기존 코드)
+        else if (classItem && classItem.length >= 11) {
           const memberNumber = classItem[10]; // 회원번호
           if (memberNumber) {
             memberNumbers.add(memberNumber);
@@ -342,60 +364,50 @@
 
         // classData에서 회원번호가 일치하는 항목 찾기
         window.totalData.classData.forEach((classItem) => {
-          // classData 형식: [0]수업신청_id, [1]계획_id, [2]날짜, [3]차수, [4]시작시간, [5]종료시간,
-          // [6]직원번호, [7]직원명, [8]활동명, [9]생활영역, [10]회원번호, [11]회원명, [12]생년월일
-          if (
-            classItem &&
-            classItem.length >= 13 &&
-            classItem[10] === memberNumber
-          ) {
-            console.log("회원의 신청 클래스 찾음:", classItem[8]);
+          // 객체로 변환된 데이터 처리
+          if (classItem && classItem.회원번호 === memberNumber) {
+            console.log("회원의 신청 클래스 찾음:", classItem.활동명);
 
-            // 활동 신청 데이터 생성
+            // 데이터 형식에 맞게 변환 
             const applicationData = {
-              activityId: classItem[1], // 계획_id
-              activityDate: String(classItem[2]), // 날짜(yyyymmdd형식)
-              classType: classItem[3], // 차수
-              startTime: String(classItem[4]), // 시작시간
-              endTime: String(classItem[5]), // 종료시간
-              employeeNumber: classItem[6], // 직원번호
-              instructor: classItem[7], // 직원명
-              title: classItem[8], // 활동명
-              lifeArea: classItem[9], // 생활영역
-              memberNumber: classItem[10], // 회원번호
-              memberName: classItem[11], // 회원명
-              memberBirth: classItem[12], // 생년월일
+              activityId: classItem.계획_id, // 활동 ID
+              activityDate: String(classItem.날짜), // 날짜(yyyymmdd형식)
+              classType: classItem.차수, // 차수
+              startTime: String(classItem.시작시간), // 시작시간
+              endTime: String(classItem.종료시간), // 종료시간
+              instructor: classItem.직원명, // 직원명
+              employeeNumber: classItem.직원번호, // 직원번호
+              title: classItem.활동명, // 활동명
+              lifeArea: classItem.생활영역, // 생활영역
+              memberNumber: classItem.회원번호, // 회원번호
+              memberName: classItem.회원명, // 회원명
+              memberBirth: classItem.생년월일, // 생년월일
             };
 
-            // 신청 클래스 배열에 추가
             appliedClasses.push(applicationData);
           }
         });
-
-        console.log("추출된 신청 클래스 데이터:", appliedClasses);
-      } else {
-        console.warn("classData가 없어 신청 클래스를 가져올 수 없습니다.");
       }
 
-      // 선택된 회원과 신청 클래스 정보 저장
+      console.log("회원의 클래스 목록:", appliedClasses);
+
+      // 선택된 회원 정보와 신청한 클래스 정보 저장
       window.updateState("selectedMember", memberData);
       window.updateState("appliedClasses", appliedClasses);
 
-      console.log("전역 상태 저장 후:", window.appState);
+      // 페이드 아웃 효과 적용 후 페이지 이동
+      const pageContainer = document.querySelector(".member-select-page");
+      if (pageContainer) {
+        pageContainer.classList.add("fade-out");
+        setTimeout(() => {
+          // 클래스 선택 페이지로 이동
+          loadPage("class-select");
+        }, 400);
+      }
     } catch (error) {
-      console.error("전역 상태 업데이트 오류:", error);
+      console.error("전역 상태 저장 오류:", error);
+      alert("회원 선택 중 오류가 발생했습니다.");
     }
-
-    // 페이드 아웃 효과 적용 후 페이지 이동
-    // 1. 현재 페이지 컨테이너 찾기
-    const pageContainer = document.querySelector(".member-select-page");
-    // 2. 페이드아웃 클래스 추가
-    pageContainer.classList.add("p1-fade-out");
-    // 3. 애니메이션 완료 후 페이지 전환
-    setTimeout(() => {
-      console.log("페이지 전환 전 전역 상태:", window.appState);
-      loadPage("class-select");
-    }, 400);
   }
 
   // 날짜 입력 필드 초기화

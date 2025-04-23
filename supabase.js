@@ -56,16 +56,8 @@ async function getselectedMemberData(selectedDate) {
 
     if (error) throw error;
 
-    // 반환 형식 변환 (2차원 배열로)
-    const formattedValues = data.map(member => [
-      member.회원번호,
-      member.회원명,
-      member.생년월일,
-      member.입소일,
-      member.퇴소일
-    ]);
-
-    return formattedValues;
+    // 객체 상태 그대로 반환
+    return data;
   } catch (error) {
     console.error('회원 데이터 조회 오류:', error);
     return [];
@@ -85,24 +77,8 @@ async function getselectedPlanData(selectedDate) {
 
     if (error) throw error;
 
-    // 반환 형식 변환 (배열로)
-    const formattedValues = data.map(plan => [
-      plan.계획_id,
-      plan.날짜,
-      plan.시작시간,
-      plan.종료시간,
-      plan.직원번호,
-      plan.직원명,
-      plan.활동명,
-      plan.생활영역,
-      plan.장소,
-      plan.준비물품,
-      plan.내용및특이사항,
-      plan.활동기록,
-      plan.참고사진URL
-    ]);
-
-    return formattedValues;
+    // 객체 상태 그대로 반환
+    return data;
   } catch (error) {
     console.error('수업계획 데이터 조회 오류:', error);
     return [];
@@ -122,24 +98,8 @@ async function getselectedClassData(selectedDate) {
 
     if (error) throw error;
 
-    // 반환 형식 변환 (배열로)
-    const formattedValues = data.map(choice => [
-      choice.수업신청_id,
-      choice.계획_id,
-      choice.날짜,
-      choice.차수,
-      choice.시작시간,
-      choice.종료시간,
-      choice.직원번호,
-      choice.직원명,
-      choice.활동명,
-      choice.생활영역,
-      choice.회원번호,
-      choice.회원명,
-      choice.생년월일
-    ]);
-
-    return formattedValues;
+    // 객체 상태 그대로 반환
+    return data;
   } catch (error) {
     console.error('수업신청 데이터 조회 오류:', error);
     return [];

@@ -186,10 +186,10 @@
       const uniqueTimes = new Map();
 
       data.forEach((row) => {
-        if (row && row[2] && row[3]) {
+        if (row && row.시작시간 && row.종료시간) {
           // 시작 시간과 종료 시간이 있는 경우
-          const startTime = parseInt(String(row[2]));
-          const endTime = parseInt(String(row[3]));
+          const startTime = parseInt(String(row.시작시간));
+          const endTime = parseInt(String(row.종료시간));
 
           if (!isNaN(startTime) && !isNaN(endTime)) {
             const key = `${startTime}-${endTime}`;
@@ -638,8 +638,8 @@
 
     // 활동명(title) 기준으로 오름차순 정렬
     const sortedActivities = [...activities].sort((a, b) => {
-      const titleA = a[6] || "제목 없음";
-      const titleB = b[6] || "제목 없음";
+      const titleA = a.활동명 || "제목 없음";
+      const titleB = b.활동명 || "제목 없음";
       return titleA.localeCompare(titleB);
     });
 
@@ -655,21 +655,18 @@
         imageUrl,
         description;
 
-      // 스프레드시트 데이터 배열 처리:
-      // [0]계획_id, [1]날짜, [2]시작시간, [3]종료시간, [4]직원번호, [5]직원명, [6]활동명,
-      // [7]생활영역, [8]장소, [9]준비물품, [10]내용및특이사항, [11]활동기록, [12]참고사진URL
-      id = activity[0] || "";
-      startTime = activity[2] ? String(activity[2]) : "";
-      endTime = activity[3] ? String(activity[3]) : "";
-      const employeeNumber = activity[4] || ""; // 직원번호 추가
-      instructor = activity[5] || "정보 없음";
-      title = activity[6] || "제목 없음";
-      lifeArea = activity[7] || "";
-      location = activity[8] || "정보 없음";
-      description = activity[10] || "내용 정보가 없습니다";
-      imageUrl =
-        activity[12] ||
-        "https://i.ibb.co/qM8hjSxt/4-3.jpg";
+      // 객체 데이터 처리
+      id = activity.계획_id || "";
+      startTime = activity.시작시간 ? String(activity.시작시간) : "";
+      endTime = activity.종료시간 ? String(activity.종료시간) : "";
+      const employeeNumber = activity.직원번호 || ""; // 직원번호 추가
+      instructor = activity.직원명 || "정보 없음";
+      title = activity.활동명 || "제목 없음";
+      lifeArea = activity.생활영역 || "";
+      location = activity.장소 || "정보 없음";
+      description = activity.내용및특이사항 || "내용 정보가 없습니다";
+      imageUrl = activity.참고사진url || "https://i.ibb.co/qM8hjSxt/4-3.jpg";
+
       // 시간 포맷팅 (HHMM → HH:MM)
       const formattedStartTime = startTime
         ? `${startTime.substring(0, 2)}:${startTime.substring(2, 4)}`
@@ -1064,11 +1061,9 @@
         fifth: [],
       };
 
-      // 스프레드시트 데이터 매핑
-      // 스프레드시트 열: 계획_id, 날짜, 시작시간, 종료시간, 직원번호, 직원명, 활동명,
-      // [7]생활영역, [8]장소, [9]준비물품, [10]내용및특이사항, [11]활동기록, [12]참고사진URL
+      // 객체 데이터 매핑
       result.forEach((row) => {
-        const startTime = String(row[2]); // 시작 시간
+        const startTime = String(row.시작시간); // 시작 시간
         if (startTime) {
           // 시작 시간으로 차수 결정
           const classIndex = CLASS_TIMES.getClassIndex(startTime);
