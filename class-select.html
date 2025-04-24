@@ -30,15 +30,15 @@
 
   <!-- 필터 버튼 추가 -->
   <div class="filter-container">
-    <button class="filter-button active" data-filter="all">전체 클래스</button>
-    <button class="filter-button" data-filter="class1">1차 클래스</button>
+    <button class="filter-button" data-filter="all">전체 클래스</button>
+    <button class="filter-button active" data-filter="class1">1차 클래스</button>
     <button class="filter-button" data-filter="class2">2차 클래스</button>
     <button class="filter-button" data-filter="class3">3차 클래스</button>
     <button class="filter-button" data-filter="class4">4차 클래스</button>
     <button class="filter-button" data-filter="class5">5차 클래스</button>
   </div>
 
-  <div class="products-container all-visible" id="products-container">
+  <div class="products-container" id="products-container">
     <!-- 활동 카드는 스크립트에서 동적으로 생성됩니다 -->
   </div>
 
@@ -1432,6 +1432,30 @@
     const filterButtons = document.querySelectorAll(".filter-button");
     const productsContainer = document.getElementById("products-container");
 
+    // 페이지 로드 시 '1차 클래스' 탭이 기본으로 활성화되도록 설정
+    const class1Button = document.querySelector('.filter-button[data-filter="class1"]');
+    if (class1Button) {
+      // 모든 버튼에서 활성 클래스 제거
+      filterButtons.forEach((btn) => btn.classList.remove("active"));
+      
+      // 1차 클래스 버튼 활성화
+      class1Button.classList.add("active");
+      
+      // products-container에서 all-visible 클래스 제거
+      productsContainer.classList.remove("all-visible");
+      
+      // 모든 섹션 숨기기
+      document.querySelectorAll(".time-section").forEach((section) => {
+        section.classList.remove("visible");
+      });
+      
+      // 1차 섹션만 보이기
+      const selectedSection = document.getElementById("class1-section");
+      if (selectedSection) {
+        selectedSection.classList.add("visible");
+      }
+    }
+
     filterButtons.forEach((button) => {
       button.addEventListener("click", function () {
         // 모든 버튼에서 활성 클래스 제거
@@ -1720,40 +1744,37 @@
           .then((response) => {
             console.log("신청 데이터 저장 성공:", response);
 
-            // 성공 메시지 표시
+            // 신청 데이터 즉시 초기화
+            appliedClasses = [];
+            window.updateState("appliedClasses", []);
+
+            // 로딩 숨김
+            showLoading(false);
+
+            // 성공 메시지 표시 (짧은 시간만 표시)
             const message = document.createElement("div");
             message.className = "success-message";
             message.textContent = "모든 활동 신청이 완료되었습니다!";
             document.body.appendChild(message);
 
-            // 메시지 표시 및 페이지 전환
+            // 메시지 표시와 페이지 전환을 거의 동시에 진행
             setTimeout(() => {
               message.classList.add("show");
-
+              
+              // 페이지 전환 효과 즉시 적용
+              document.querySelector(".class-select-page").classList.add("p1-fade-out");
+              
+              // 매우 짧은 시간 후 페이지 전환 및 메시지 제거
               setTimeout(() => {
-                message.classList.remove("show");
-
+                loadPage("member-select");
+                
+                // 메시지 제거는 페이지 전환 후에 처리
                 setTimeout(() => {
+                  message.classList.remove("show");
                   document.body.removeChild(message);
-
-                  // 신청 데이터 초기화
-                  appliedClasses = [];
-                  window.updateState("appliedClasses", []);
-
-                  // 페이지 전환 효과 적용
-                  document
-                    .querySelector(".class-select-page")
-                    .classList.add("p1-fade-out");
-
-                  // 회원 선택 페이지로 이동
-                  setTimeout(() => {
-                    loadPage("member-select");
-                  }, 200);
-                }, 200);
-              }, 1000);
+                }, 300);
+              }, 50); // 50ms 후 페이지 전환 (사용자가 성공 메시지를 볼 수 있는 최소 시간)
             }, 10);
-
-            showLoading(false);
           })
           .catch((error) => {
             console.error("신청 데이터 저장 실패:", error);
