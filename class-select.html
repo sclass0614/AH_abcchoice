@@ -387,6 +387,36 @@
     if (completeModalSecondaryBtn) {
       completeModalSecondaryBtn.addEventListener("click", closeCompleteModal);
     }
+    
+    // 페이지 로드 완료 후 1차 클래스 탭이 선택되어 있는지 최종 확인
+    setTimeout(() => {
+      // 1차 클래스 버튼 선택
+      const class1Button = document.querySelector('.filter-button[data-filter="class1"]');
+      const allButton = document.querySelector('.filter-button[data-filter="all"]');
+      
+      if (class1Button && !class1Button.classList.contains('active')) {
+        // 모든 버튼에서 활성 클래스 제거
+        document.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active'));
+        
+        // 1차 클래스 버튼 활성화
+        class1Button.classList.add('active');
+        
+        // 전체보기 대신 1차 클래스만 표시
+        const productsContainer = document.getElementById('products-container');
+        if (productsContainer) {
+          productsContainer.classList.remove('all-visible');
+        }
+        
+        // 모든 섹션 숨기기
+        document.querySelectorAll('.time-section').forEach(section => section.classList.remove('visible'));
+        
+        // 1차 섹션만 보이기
+        const class1Section = document.getElementById('class1-section');
+        if (class1Section) {
+          class1Section.classList.add('visible');
+        }
+      }
+    }, 100);
   };
 
   // 페이지 로드 시 실행
@@ -1098,6 +1128,9 @@
       const container = document.getElementById("products-container");
       if (container) {
         container.innerHTML = "";
+        
+        // all-visible 클래스 제거
+        container.classList.remove("all-visible");
       }
 
       // 각 차수별로 표시
@@ -1106,6 +1139,12 @@
       displayTimeSection(CLASS_TIMES.TITLES[2], classesByTime.third);
       displayTimeSection(CLASS_TIMES.TITLES[3], classesByTime.fourth);
       displayTimeSection(CLASS_TIMES.TITLES[4], classesByTime.fifth);
+      
+      // 1차 클래스 섹션만 visible 클래스 추가
+      const class1Section = document.getElementById("class1-section");
+      if (class1Section) {
+        class1Section.classList.add("visible");
+      }
 
       // 모든 카드가 로드된 후 컨테이너 표시
       setTimeout(() => {
