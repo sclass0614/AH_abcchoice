@@ -29,13 +29,8 @@
   </div>
 
   <!-- 필터 버튼 추가 -->
-  <div class="filter-container">
-    <button class="filter-button" data-filter="all">전체 클래스</button>
-    <button class="filter-button active" data-filter="class1">1차 클래스</button>
-    <button class="filter-button" data-filter="class2">2차 클래스</button>
-    <button class="filter-button" data-filter="class3">3차 클래스</button>
-    <button class="filter-button" data-filter="class4">4차 클래스</button>
-    <button class="filter-button" data-filter="class5">5차 클래스</button>
+  <div class="filter-container" id="filter-container">
+    <!-- 필터 버튼들이 동적으로 생성됩니다 -->
   </div>
 
   <div class="products-container" id="products-container">
@@ -213,8 +208,8 @@
 
       console.log("데이터에서 추출한 시간 정보:", sortedTimes);
 
-      // 최대 5개 차수만 사용
-      const maxClasses = Math.min(sortedTimes.length, 5);
+      // 모든 차수 사용 (5개 제한 제거)
+      const maxClasses = sortedTimes.length;
 
       // 새 시간 정보로 업데이트
       this.START = [];
@@ -303,9 +298,6 @@
     // 활동 데이터 로드
     loadPlanData();
 
-    // 필터 버튼 이벤트 리스너 추가
-    setupFilterButtons();
-
     // 모달 버튼 초기화
     setupModalButtons();
 
@@ -387,36 +379,6 @@
     if (completeModalSecondaryBtn) {
       completeModalSecondaryBtn.addEventListener("click", closeCompleteModal);
     }
-    
-    // 페이지 로드 완료 후 1차 클래스 탭이 선택되어 있는지 최종 확인
-    setTimeout(() => {
-      // 1차 클래스 버튼 선택
-      const class1Button = document.querySelector('.filter-button[data-filter="class1"]');
-      const allButton = document.querySelector('.filter-button[data-filter="all"]');
-      
-      if (class1Button && !class1Button.classList.contains('active')) {
-        // 모든 버튼에서 활성 클래스 제거
-        document.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active'));
-        
-        // 1차 클래스 버튼 활성화
-        class1Button.classList.add('active');
-        
-        // 전체보기 대신 1차 클래스만 표시
-        const productsContainer = document.getElementById('products-container');
-        if (productsContainer) {
-          productsContainer.classList.remove('all-visible');
-        }
-        
-        // 모든 섹션 숨기기
-        document.querySelectorAll('.time-section').forEach(section => section.classList.remove('visible'));
-        
-        // 1차 섹션만 보이기
-        const class1Section = document.getElementById('class1-section');
-        if (class1Section) {
-          class1Section.classList.add('visible');
-        }
-      }
-    }, 100);
   };
 
   // 페이지 로드 시 실행
@@ -1083,13 +1045,12 @@
       }
 
       // 차수별로 클래스 분류
-      const classesByTime = {
-        first: [],
-        second: [],
-        third: [],
-        fourth: [],
-        fifth: [],
-      };
+      const classesByTime = {};
+
+      // 동적으로 차수별 객체 초기화
+      CLASS_TIMES.LABELS.forEach(label => {
+        classesByTime[label] = [];
+      });
 
       // 객체 데이터 매핑
       result.forEach((row) => {
@@ -1101,25 +1062,7 @@
           if (classIndex >= 0) {
             // 차수 레이블 가져오기 (1차, 2차 등)
             const classType = CLASS_TIMES.LABELS[classIndex];
-
-            // 시간대별 배열에 추가
-            switch (classType) {
-              case "1차":
-                classesByTime.first.push(row);
-                break;
-              case "2차":
-                classesByTime.second.push(row);
-                break;
-              case "3차":
-                classesByTime.third.push(row);
-                break;
-              case "4차":
-                classesByTime.fourth.push(row);
-                break;
-              case "5차":
-                classesByTime.fifth.push(row);
-                break;
-            }
+            classesByTime[classType].push(row);
           }
         }
       });
@@ -1133,17 +1076,31 @@
         container.classList.remove("all-visible");
       }
 
-      // 각 차수별로 표시
-      displayTimeSection(CLASS_TIMES.TITLES[0], classesByTime.first);
-      displayTimeSection(CLASS_TIMES.TITLES[1], classesByTime.second);
-      displayTimeSection(CLASS_TIMES.TITLES[2], classesByTime.third);
-      displayTimeSection(CLASS_TIMES.TITLES[3], classesByTime.fourth);
-      displayTimeSection(CLASS_TIMES.TITLES[4], classesByTime.fifth);
+      // 활동이 있는 차수들의 정보 저장
+      const availableClasses = [];
+
+      // 각 차수별로 표시 (활동이 있는 경우만)
+      CLASS_TIMES.LABELS.forEach((label, index) => {
+        if (classesByTime[label] && classesByTime[label].length > 0) {
+          displayTimeSection(CLASS_TIMES.TITLES[index], classesByTime[label]);
+          availableClasses.push({
+            label: label,
+            title: CLASS_TIMES.TITLES[index],
+            count: classesByTime[label].length
+          });
+        }
+      });
+
+      // 동적 필터 버튼 생성
+      createDynamicFilterButtons(availableClasses);
       
-      // 1차 클래스 섹션만 visible 클래스 추가
-      const class1Section = document.getElementById("class1-section");
-      if (class1Section) {
-        class1Section.classList.add("visible");
+      // 첫 번째 사용 가능한 클래스 섹션만 visible 클래스 추가
+      if (availableClasses.length > 0) {
+        const firstClassNum = availableClasses[0].label.charAt(0);
+        const firstSection = document.getElementById(`class${firstClassNum}-section`);
+        if (firstSection) {
+          firstSection.classList.add("visible");
+        }
       }
 
       // 모든 카드가 로드된 후 컨테이너 표시
@@ -1466,34 +1423,35 @@
     }
   }
 
+  // 동적 필터 버튼 생성 함수
+  function createDynamicFilterButtons(availableClasses) {
+    const filterContainer = document.getElementById("filter-container");
+    if (!filterContainer) return;
+
+    // 기존 버튼들 제거
+    filterContainer.innerHTML = "";
+
+    // 활동이 있는 차수별로 필터 버튼 생성
+    availableClasses.forEach((classInfo, index) => {
+      const button = document.createElement("button");
+      button.className = "filter-button";
+      if (index === 0) {
+        button.classList.add("active"); // 첫 번째 버튼을 기본 활성화
+      }
+      button.setAttribute("data-filter", `class${classInfo.label.charAt(0)}`);
+      button.textContent = `${classInfo.label} 클래스`;
+      
+      filterContainer.appendChild(button);
+    });
+
+    // 버튼 생성 후 이벤트 리스너 설정
+    setupFilterButtons();
+  }
+
   // 필터 버튼 설정
   function setupFilterButtons() {
     const filterButtons = document.querySelectorAll(".filter-button");
     const productsContainer = document.getElementById("products-container");
-
-    // 페이지 로드 시 '1차 클래스' 탭이 기본으로 활성화되도록 설정
-    const class1Button = document.querySelector('.filter-button[data-filter="class1"]');
-    if (class1Button) {
-      // 모든 버튼에서 활성 클래스 제거
-      filterButtons.forEach((btn) => btn.classList.remove("active"));
-      
-      // 1차 클래스 버튼 활성화
-      class1Button.classList.add("active");
-      
-      // products-container에서 all-visible 클래스 제거
-      productsContainer.classList.remove("all-visible");
-      
-      // 모든 섹션 숨기기
-      document.querySelectorAll(".time-section").forEach((section) => {
-        section.classList.remove("visible");
-      });
-      
-      // 1차 섹션만 보이기
-      const selectedSection = document.getElementById("class1-section");
-      if (selectedSection) {
-        selectedSection.classList.add("visible");
-      }
-    }
 
     filterButtons.forEach((button) => {
       button.addEventListener("click", function () {
@@ -1506,24 +1464,18 @@
         // 필터 값 가져오기
         const filter = this.getAttribute("data-filter");
 
-        // 필터에 따라 섹션 표시/숨김 처리
-        if (filter === "all") {
-          // 전체 보기
-          productsContainer.classList.add("all-visible");
-        } else {
-          // 특정 차수만 보기
-          productsContainer.classList.remove("all-visible");
+        // 특정 차수만 보기
+        productsContainer.classList.remove("all-visible");
 
-          // 모든 섹션 숨기기
-          document.querySelectorAll(".time-section").forEach((section) => {
-            section.classList.remove("visible");
-          });
+        // 모든 섹션 숨기기
+        document.querySelectorAll(".time-section").forEach((section) => {
+          section.classList.remove("visible");
+        });
 
-          // 선택된 섹션만 보이기
-          const selectedSection = document.getElementById(`${filter}-section`);
-          if (selectedSection) {
-            selectedSection.classList.add("visible");
-          }
+        // 선택된 섹션만 보이기
+        const selectedSection = document.getElementById(`${filter}-section`);
+        if (selectedSection) {
+          selectedSection.classList.add("visible");
         }
       });
     });
@@ -1632,24 +1584,16 @@
 
   // 다음 빈 클래스 찾기
   function findNextEmptyClass(currentClass) {
-    // 클래스 순서 정의
-    const classOrder = ["1차", "2차", "3차", "4차", "5차"];
+    // 동적으로 클래스 순서 생성
+    const classOrder = CLASS_TIMES.LABELS || [];
     const currentIndex = classOrder.indexOf(currentClass);
 
     // 이미 신청한 클래스의 차수들 목록
     const appliedClassTypes = [];
     appliedClasses.forEach((classItem) => {
-      const startTime = parseInt(classItem.startTime);
-      if (startTime >= 900 && startTime < 1030) {
-        appliedClassTypes.push("1차");
-      } else if (startTime >= 1030 && startTime < 1200) {
-        appliedClassTypes.push("2차");
-      } else if (startTime >= 1300 && startTime < 1430) {
-        appliedClassTypes.push("3차");
-      } else if (startTime >= 1430 && startTime < 1600) {
-        appliedClassTypes.push("4차");
-      } else if (startTime >= 1600 && startTime < 1730) {
-        appliedClassTypes.push("5차");
+      const classType = CLASS_TIMES.getLabelByTime(classItem.startTime);
+      if (classType !== "기타") {
+        appliedClassTypes.push(classType);
       }
     });
 
@@ -1898,7 +1842,7 @@
                                 </div>
                             </div>
                         </div>
-                    `;
+                      `;
 
       // 목록에 추가
       listContainer.insertAdjacentHTML("beforeend", itemHTML);
@@ -1922,8 +1866,8 @@
 
   // 미신청 클래스 확인 (유효한 차수만 계산)
   function checkAvailableClasses() {
-    // 클래스 순서 정의
-    const classOrder = ["1차", "2차", "3차", "4차", "5차"];
+    // 동적으로 클래스 순서 생성
+    const classOrder = CLASS_TIMES.LABELS || [];
 
     // 이미 신청한 클래스의 차수들 목록
     const appliedClassTypes = [];
@@ -1959,17 +1903,4 @@
     console.log("신청 가능한 클래스 차수:", availableClassTypes);
     return availableClassTypes;
   }
-
-  // ESC 키 이벤트 리스너 추가
-  document.addEventListener("keydown", function (event) {
-    // ESC 키 (keyCode 27)가 눌렸을 때
-    if (event.key === "Escape" || event.keyCode === 27) {
-      // 활성화된 카드가 있는지 확인
-      const activeCard = document.querySelector(".product-card.active");
-      if (activeCard) {
-        // 카드 초기화 함수 호출
-        resetAllCards();
-      }
-    }
-  });
 </script>
