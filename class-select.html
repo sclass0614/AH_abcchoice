@@ -117,6 +117,7 @@
   let selectedActivity = null;
   let appliedClasses = []; // 신청한 클래스 배열
   let selectedDate = new Date(); // 선택된 날짜
+  let isProcessing = false; // 처리 중 플래그 추가
 
   // 시간대 관리를 위한 전역 설정
   const CLASS_TIMES = {
@@ -523,9 +524,7 @@
     appliedClassesContainer.innerHTML = "";
 
     if (appliedClasses.length === 0) {
-      // 신청한 클래스가 없는 경우
-      appliedClassesContainer.innerHTML =
-        '<span class="empty-applied">아직 신청한 클래스가 없습니다.</span>';
+      // 신청한 클래스가 없는 경우 - 텍스트 없이 빈 컨테이너만 표시
       return;
     }
 
@@ -1633,27 +1632,64 @@
     if (modal) {
       modal.classList.remove("show");
     }
+    
+    // 버튼 다시 활성화
+    const submitBtn = document.getElementById("complete-modal-btn-primary");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.pointerEvents = "auto";
+      submitBtn.style.opacity = "1";
+    }
+    
+    // 처리 중 플래그 초기화
+    isProcessing = false;
   }
 
   // 모든 신청 완료 처리
   function finalizeAllApplications() {
     console.log("finalizeAllApplications 함수 호출됨");
+    
+    // 이미 처리 중이면 중복 실행 방지
+    if (isProcessing) {
+      console.log("이미 처리 중입니다. 중복 실행 방지");
+      return;
+    }
+    
+    // 처리 중 플래그 설정
+    isProcessing = true;
+    
+    // 즉시 버튼 비활성화
+    const submitBtn = document.getElementById("complete-modal-btn-primary");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.style.pointerEvents = "none";
+      submitBtn.style.opacity = "0.5";
+    }
 
-    // 신청한 클래스가 없으면 처리하지 않음
+    // 신청한 클래스가 없으면 처리하지 않고 회원 선택 페이지로 이동
     if (!appliedClasses || appliedClasses.length === 0) {
-      alert("신청한 클래스가 없습니다.");
+      console.log("신청한 클래스가 없음, 회원 선택 페이지로 이동");
       closeCompleteModal();
+      
+      // 페이지 전환 효과 적용
+      const pageEl = document.querySelector(".class-select-page");
+      if (pageEl) {
+        pageEl.classList.add("p1-fade-out");
+        setTimeout(() => {
+          loadPage("member-select");
+        }, 400);
+      } else {
+        loadPage("member-select");
+      }
       return;
     }
 
     // 먼저 모달 닫기
     closeCompleteModal();
 
-    // 그 다음 로딩 표시
     setTimeout(() => {
       showLoading(true);
 
-      // 디버깅: 테이블 구조 확인 (테이블 구조 확인 함수가 있다면 호출)
       if (typeof checkColumns === "function") {
         console.log("테이블 구조 확인 함수 호출");
         checkColumns()
@@ -1702,7 +1738,6 @@
           }
 
           // 행 데이터 구성
-          // (수업신청_id, 계획_id, 날짜, 차수, 시작시간, 종료시간, 직원번호, 직원명, 활동명, 생활영역, 회원번호, 회원명, 생년월일)
           return [
             applicationId, // 수업신청_id
             classItem.activityId, // 계획_id
@@ -1733,6 +1768,9 @@
 
             // 로딩 숨김
             showLoading(false);
+            
+            // 처리 중 플래그 초기화
+            isProcessing = false;
 
             // 성공 메시지 표시 (짧은 시간만 표시)
             const message = document.createElement("div");
@@ -1762,6 +1800,9 @@
           .catch((error) => {
             console.error("신청 데이터 저장 실패:", error);
             showLoading(false);
+            
+            // 처리 중 플래그 초기화 (에러 발생 시에도)
+            isProcessing = false;
 
             // 오류 메시지 표시
             alert("활동 신청 데이터 저장에 실패했습니다: " + error);
@@ -1799,6 +1840,9 @@
       console.log("신청한 클래스가 없어 모달을 표시하지 않음");
       return;
     }
+    
+    // 처리 중 플래그 초기화
+    isProcessing = false;
 
     // 컨테이너 가져오기
     const listContainer = document.getElementById("complete-classes-list");
@@ -1852,6 +1896,14 @@
     const messageElement = document.getElementById("complete-modal-message");
     if (messageElement && selectedMember) {
       messageElement.textContent = `${selectedMember.name} 회원님이 ${sortedClasses.length}개의 활동에 신청하셨습니다. 신청을 완료하시겠습니까?`;
+    }
+
+    // 버튼 활성화 상태 확인
+    const submitBtn = document.getElementById("complete-modal-btn-primary");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.pointerEvents = "auto";
+      submitBtn.style.opacity = "1";
     }
 
     // 모달 표시
