@@ -524,7 +524,9 @@
     appliedClassesContainer.innerHTML = "";
 
     if (appliedClasses.length === 0) {
-      // 신청한 클래스가 없는 경우 - 텍스트 없이 빈 컨테이너만 표시
+      // 신청한 클래스가 없는 경우
+      appliedClassesContainer.innerHTML =
+        '<span class="empty-applied">아직 신청한 클래스가 없습니다.</span>';
       return;
     }
 
@@ -1666,21 +1668,10 @@
       submitBtn.style.opacity = "0.5";
     }
 
-    // 신청한 클래스가 없으면 처리하지 않고 회원 선택 페이지로 이동
+    // 신청한 클래스가 없으면 처리하지 않음
     if (!appliedClasses || appliedClasses.length === 0) {
-      console.log("신청한 클래스가 없음, 회원 선택 페이지로 이동");
+      alert("신청한 클래스가 없습니다.");
       closeCompleteModal();
-      
-      // 페이지 전환 효과 적용
-      const pageEl = document.querySelector(".class-select-page");
-      if (pageEl) {
-        pageEl.classList.add("p1-fade-out");
-        setTimeout(() => {
-          loadPage("member-select");
-        }, 400);
-      } else {
-        loadPage("member-select");
-      }
       return;
     }
 
