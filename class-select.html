@@ -1635,16 +1635,41 @@
       modal.classList.remove("show");
     }
     
-    // 버튼 다시 활성화
+    // 처리 중이 아닐 때만 버튼 다시 활성화
+    if (!isProcessing) {
+      const submitBtn = document.getElementById("complete-modal-btn-primary");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.style.pointerEvents = "auto";
+        submitBtn.style.opacity = "1";
+      }
+    }
+  }
+
+  // 버튼 상태 관리 함수
+  function setButtonProcessing(processing) {
     const submitBtn = document.getElementById("complete-modal-btn-primary");
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.style.pointerEvents = "auto";
-      submitBtn.style.opacity = "1";
+      if (processing) {
+        submitBtn.disabled = true;
+        submitBtn.style.pointerEvents = "none";
+        submitBtn.style.opacity = "0.6";
+        submitBtn.textContent = "처리 중...";
+        submitBtn.classList.add("processing");
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.style.pointerEvents = "auto";
+        submitBtn.style.opacity = "1";
+        submitBtn.textContent = "신청 완료";
+        submitBtn.classList.remove("processing");
+      }
     }
-    
-    // 처리 중 플래그 초기화
+  }
+
+  // 처리 상태 초기화 함수
+  function resetProcessingState() {
     isProcessing = false;
+    setButtonProcessing(false);
   }
 
   // 모든 신청 완료 처리
@@ -1660,23 +1685,25 @@
     // 처리 중 플래그 설정
     isProcessing = true;
     
-    // 즉시 버튼 비활성화
-    const submitBtn = document.getElementById("complete-modal-btn-primary");
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.style.pointerEvents = "none";
-      submitBtn.style.opacity = "0.5";
-    }
+    // 즉시 버튼 비활성화 및 텍스트 변경
+    setButtonProcessing(true);
 
     // 신청한 클래스가 없으면 처리하지 않음
     if (!appliedClasses || appliedClasses.length === 0) {
       alert("신청한 클래스가 없습니다.");
+      resetProcessingState();
       closeCompleteModal();
       return;
     }
 
     // 먼저 모달 닫기
     closeCompleteModal();
+
+    // 타임아웃으로 처리하여 안전장치 추가 (30초 후 자동 초기화)
+    const processingTimeout = setTimeout(() => {
+      console.warn("처리 시간이 너무 오래 걸려 상태를 초기화합니다.");
+      resetProcessingState();
+    }, 30000);
 
     setTimeout(() => {
       showLoading(true);
@@ -1753,6 +1780,9 @@
           .then((response) => {
             console.log("신청 데이터 저장 성공:", response);
 
+            // 타임아웃 정리
+            clearTimeout(processingTimeout);
+
             // 신청 데이터 즉시 초기화
             appliedClasses = [];
             window.updateState("appliedClasses", []);
@@ -1760,8 +1790,8 @@
             // 로딩 숨김
             showLoading(false);
             
-            // 처리 중 플래그 초기화
-            isProcessing = false;
+            // 처리 상태 초기화
+            resetProcessingState();
 
             // 성공 메시지 표시 (짧은 시간만 표시)
             const message = document.createElement("div");
@@ -1790,10 +1820,14 @@
           })
           .catch((error) => {
             console.error("신청 데이터 저장 실패:", error);
+            
+            // 타임아웃 정리
+            clearTimeout(processingTimeout);
+            
             showLoading(false);
             
-            // 처리 중 플래그 초기화 (에러 발생 시에도)
-            isProcessing = false;
+            // 처리 상태 초기화 (에러 발생 시에도)
+            resetProcessingState();
 
             // 오류 메시지 표시
             alert("활동 신청 데이터 저장에 실패했습니다: " + error);
@@ -1806,7 +1840,28 @@
   function setupModalButtons() {
     const submitBtn = document.getElementById("complete-modal-btn-primary");
     if (submitBtn) {
-      submitBtn.addEventListener("click", finalizeAllApplications);
+      // 기존 이벤트 리스너 제거 (중복 방지)
+      submitBtn.removeEventListener("click", finalizeAllApplications);
+      
+      // 새 이벤트 리스너 추가 (중복 방지 로직 포함)
+      submitBtn.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // 이미 처리 중이면 무시
+        if (isProcessing) {
+          console.log("이미 처리 중입니다. 클릭 무시");
+          return;
+        }
+        
+        // 버튼이 비활성화 상태면 무시
+        if (submitBtn.disabled || submitBtn.style.pointerEvents === "none") {
+          console.log("버튼이 비활성화 상태입니다. 클릭 무시");
+          return;
+        }
+        
+        finalizeAllApplications();
+      });
     }
 
     // 카드의 신청 버튼 이벤트 리스너 추가
@@ -1832,8 +1887,10 @@
       return;
     }
     
-    // 처리 중 플래그 초기화
-    isProcessing = false;
+    // 처리 중 플래그와 버튼 상태 초기화 (모달 열 때만)
+    if (!isProcessing) {
+      resetProcessingState();
+    }
 
     // 컨테이너 가져오기
     const listContainer = document.getElementById("complete-classes-list");
@@ -1887,14 +1944,6 @@
     const messageElement = document.getElementById("complete-modal-message");
     if (messageElement && selectedMember) {
       messageElement.textContent = `${selectedMember.name} 회원님이 ${sortedClasses.length}개의 활동에 신청하셨습니다. 신청을 완료하시겠습니까?`;
-    }
-
-    // 버튼 활성화 상태 확인
-    const submitBtn = document.getElementById("complete-modal-btn-primary");
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.style.pointerEvents = "auto";
-      submitBtn.style.opacity = "1";
     }
 
     // 모달 표시
